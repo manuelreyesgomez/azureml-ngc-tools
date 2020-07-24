@@ -1,0 +1,7 @@
+.ssh
+build
+dist
+portforward_out_log.txt
+azureml_ngc_tools.egg-info/
+__pycache__
+*.json

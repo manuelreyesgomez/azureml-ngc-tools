@@ -1,0 +1,6 @@
+azureml-sdk>=1.0.83
+logging>=0.5.1.2
+asyncio
+click>=7.1.2
+pathlib
+threading
