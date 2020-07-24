@@ -1,0 +1,2 @@
+include versioneer.py
+include azureml_ngc_tools/_version.py
