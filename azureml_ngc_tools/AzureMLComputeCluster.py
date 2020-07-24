@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
-from azureml.core import Experiment, RunConfiguration, ScriptRunConfig
+from azureml.core import Experiment
 from azureml.core.compute import AmlCompute
 from azureml.train.estimator import Estimator
-from azureml.core.runconfig import MpiConfiguration
 
-import time, os, socket, subprocess, logging
+import time, os, subprocess, logging
 import pathlib
 import threading
 import signal
-import sys
 
 logger = logging.getLogger(__name__)
 
 
-class AzureMLComputeCluster():
+class AzureMLComputeCluster:
     """ Deploy a Dask cluster using Azure ML
 
     This creates a dask scheduler and workers on an Azure ML Compute Target.
@@ -169,7 +167,7 @@ class AzureMLComputeCluster():
                     )
                     raise TypeError(error_message)
 
-        self.additional_ports = [] if additional_ports == None else additional_ports
+        self.additional_ports = [] if additional_ports is None else additional_ports
 
         self.admin_username = admin_username
         self.admin_ssh_key = admin_ssh_key
@@ -185,8 +183,8 @@ class AzureMLComputeCluster():
 
         ### define script parameters
         self.script_params = {}
-        self.script_params['--use_gpu'] = self.use_gpu
-        self.script_params['--n_gpus_per_node'] = self.n_gpus_per_node
+        self.script_params["--use_gpu"] = self.use_gpu
+        self.script_params["--n_gpus_per_node"] = self.n_gpus_per_node
 
         ### headnode info
         self.headnode_info = {}
@@ -195,11 +193,11 @@ class AzureMLComputeCluster():
             self.__append_telemetry()
 
         self.__create_cluster()
-        self.__print_message('Cluster created...')
+        self.__print_message("Cluster created...")
 
     def __signal_handler(self, signal, frame):
         print()
-        self.__print_message('Closing the cluster...')
+        self.__print_message("Closing the cluster...")
         self._close()
         # sys.exit(0)
 
@@ -218,7 +216,7 @@ class AzureMLComputeCluster():
         print(f"{pre_post} {msg} {pre_post}".center(length, filler))
 
     def __create_cluster(self):
-        print('\n')
+        print("\n")
         self.__print_message("Setting up cluster")
 
         exp = Experiment(self.workspace, self.experiment_name)
@@ -239,24 +237,24 @@ class AzureMLComputeCluster():
         while (
             run.get_status() != "Canceled"
             and run.get_status() != "Failed"
-            and "jupyter" not in run.get_metrics()  #and "scheduler" not in run.get_metrics()
+            and "jupyter"
+            not in run.get_metrics()  # and "scheduler" not in run.get_metrics()
         ):
             print(".", end="")
             logger.info("Compute Cluster not ready")
             time.sleep(5)
 
-      
         if run.get_status() == "Canceled" or run.get_status() == "Failed":
             logger.exception("Failed to start the AzureML Compute Cluster")
             raise Exception("Failed to start the AzureML Compute Cluster.")
-        
+
         print()
         self.__print_message("Jupyter session is running...")
         print("\n\n")
 
         self.__setup_port_forwarding()
-        self.__update_links()    
-        
+        self.__update_links()
+
         self.__print_message("Connections established")
 
     def __update_links(self):
@@ -290,9 +288,7 @@ class AzureMLComputeCluster():
         headnode_public_ip = self.compute_target.list_nodes()[0]["publicIpAddress"]
         headnode_public_port = self.compute_target.list_nodes()[0]["port"]
         self.__print_message("headnode_public_ip: {}".format(headnode_public_ip))
-        self.__print_message(
-            "headnode_public_port: {}".format(headnode_public_port)
-        )
+        self.__print_message("headnode_public_port: {}".format(headnode_public_port))
 
         cmd = (
             "ssh -vvv -o StrictHostKeyChecking=no -N"

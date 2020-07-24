@@ -8,10 +8,13 @@ import argparse
 import threading
 import subprocess
 import logging
+
 ####---from mpi4py import MPI
+
 
 def install(package):
     subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+
 
 def flush(proc, proc_log):
     while True:
@@ -24,6 +27,7 @@ def flush(proc, proc_log):
             proc_log.write(proc_out)
             proc_log.flush()
 
+
 def evaluate_cmd(cmd, logFileName):
     cmd_log = open(logFileName, "a")
     cmd_proc = subprocess.Popen(
@@ -32,7 +36,7 @@ def evaluate_cmd(cmd, logFileName):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
-    
+
     cmd_flush = threading.Thread(target=flush, args=(cmd_proc, cmd_log))
     cmd_flush.start()
     flush(cmd_proc, cmd_log)
@@ -119,18 +123,18 @@ if __name__ == "__main__":
 
     jupyter_servers = list(list_running_servers())
     assert len(jupyter_servers) == 1, "more than one jupyter server is running"
-    
+
     flush(jupyter_proc, jupyter_log)
-        
-    
+
     extraCMDS = {
-        f"wget https://api.ngc.nvidia.com/v2/resources/nvidia/med/getting_started/versions/1/zip":"unload_log.txt",
-        f"mv zip zip.zip":"mv_log.txt",
-        f"unzip zip.zip":"unzip_log.txt"}
+        f"wget https://api.ngc.nvidia.com/v2/resources/nvidia/med/getting_started/versions/1/zip": "unload_log.txt",
+        f"mv zip zip.zip": "mv_log.txt",
+        f"unzip zip.zip": "unzip_log.txt",
+    }
     extraCMDS_procs = {}
-    
+
     for key in extraCMDS:
-        extraCMDS_procs[key] = evaluate_cmd(key,extraCMDS[key])
+        extraCMDS_procs[key] = evaluate_cmd(key, extraCMDS[key])
 
     if jupyter_proc:
         jupyter_proc.kill()
@@ -138,6 +142,6 @@ if __name__ == "__main__":
     for key in extraCMDS_procs:
         if extraCMDS_procs[key]:
             extraCMDS_procs[key].kill()
-    
+
     run.complete()
     run.cancel()
