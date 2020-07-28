@@ -1,0 +1,25 @@
+{
+    "azureml_user":
+    {
+        "subscription_id": "<YOUR-SUBSCRIPTION-ID>",
+        "resource_group": "<YOUR-RESOURCE-GROUP>",
+        "workspace_name": "<YOUR-WORKSPACE-NAME>"
+    },
+    "aml_compute":
+    {
+        "ct_name":"<NAME-OF-YOUR-COMPUTE-TARGET>",
+        "exp_name":"<NAME-OF-YOUR-EXPERIMENT>",
+        "vm_name":"<SIZE-OF-THE-AZUREML-VM>",
+        "admin_name":"<ADMINISTRATOR-NAME>",
+        "min_nodes":<MINIMUM-NUMBER-OF-NODES>,
+        "max_nodes":<MAXIMUM-NUMBER-OF-NODES>,
+        "vm_priority": "<dedicated|lowpriority>",
+        "idle_seconds_before_scaledown":<NUMBER-OF-SECONDS-TO-SCALE-DOWN>,
+        "python_interpreter":"<PATH-TO-PYTHON-INTERPRETER>",
+        "conda_packages":[<LIST-OF-ADDITIONAL-CONDA-OR-PIP-PACKAGES>],
+        "environment_name":"<NAME-OF-ENVIRONMENT>",
+        "docker_enabled":<true|false>,
+        "user_managed_dependencies":<true|false>,
+        "jupyter_port":<JUPYTER-PORT-FOR-FORWARDING>
+    }
+}

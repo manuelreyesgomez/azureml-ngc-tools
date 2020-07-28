@@ -1,0 +1,7 @@
+{
+    "base_dockerfile":"<URI-TO-NGC-CONTAINER>",
+    "additional_content":
+    [
+        <ADDITIONAL_CONTENT>
+    ]
+}
