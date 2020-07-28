@@ -8,7 +8,7 @@ import click, os
 
 from azureml_ngc_tools.AzureMLComputeCluster import AzureMLComputeCluster
 from azureml_ngc_tools.cli import ngccontent
-
+from azureml.exceptions._azureml_exception import ProjectSystemException
 
 logger = logging.getLogger(__name__)
 
@@ -28,11 +28,21 @@ def start(login, app):
     resource_group = login_config["azureml_user"]["resource_group"]
     workspace_name = login_config["azureml_user"]["workspace_name"]
 
-    ws = Workspace(
-        workspace_name=workspace_name,
-        subscription_id=subscription_id,
-        resource_group=resource_group,
-    )
+    try:
+        ws = Workspace(
+            workspace_name=workspace_name,
+            subscription_id=subscription_id,
+            resource_group=resource_group,
+        )
+    except ProjectSystemException:
+        msg = f'\n\nThe workspace "{workspace_name}" does not exist. '
+        msg += f'Go to \n\n  -->> https://docs.microsoft.com/en-us/azure/machine-learning/how-to-manage-workspace <<-- \n\n'
+        msg += f'and create the workspace first.\n\n\n'
+        msg += f'Your current configuration: \n\n'
+        msg += f'Workspace name: {workspace_name} \n'
+        msg += f'Subscription id: {subscription_id} \n'
+        msg += f'Resource group: {resource_group}\n\n'
+        raise Exception(msg)
 
     verify = f"""
     Subscription ID: {subscription_id}
