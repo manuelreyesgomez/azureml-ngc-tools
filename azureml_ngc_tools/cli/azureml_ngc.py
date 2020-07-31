@@ -4,7 +4,7 @@ from azureml.core import Workspace, Environment
 from azureml.core.conda_dependencies import CondaDependencies
 from azureml.core.compute import ComputeTarget, AmlCompute
 
-import click, os, time
+import click, os, time, re
 
 from azureml_ngc_tools.AzureMLComputeCluster import AzureMLComputeCluster
 from azureml_ngc_tools.cli import ngccontent
@@ -12,7 +12,7 @@ from azureml.exceptions._azureml_exception import ProjectSystemException
 
 ### SETUP LOGGING
 fileFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.10s]  %(message)s")
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('azureml_ngc')
 logger.setLevel('DEBUG')
 
 fileHandler = logging.FileHandler("azureml_ngc_tools.log", mode='w')
@@ -73,13 +73,15 @@ def start(login, app):
 
     ### GPU RUN INFO
     workspace_vm_sizes = AmlCompute.supported_vmsizes(ws)
+    pascal_volta_pattern = pattern = re.compile(r'[a-z]+_nc[0-9]+[s]?_v[2,3]') ### matches NC-series v2 and v3
     workspace_vm_sizes = [
         (e["name"].lower(), e["gpus"])
         for e in workspace_vm_sizes
-        if "_nc" in e["name"].lower()
+        if pattern.match(e["name"].lower())
     ]
     workspace_vm_sizes = dict(workspace_vm_sizes)
 
+    ### GET COMPUTE TARGET
     if vm_name in workspace_vm_sizes:
         # vm_name = login_config["aml_compute"]["vm_name"]
         gpus_per_node = workspace_vm_sizes[vm_name]
@@ -99,7 +101,7 @@ def start(login, app):
             logger.warning(f"Compute target {ct_name} does not exist...")
 
             # logger.warning(f"Compute target {ct_name} does not exist...")
-            ct = createComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config)
+            ct = createOrGetComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config)
         else:
             ct = ws.compute_targets[ct_name]
 
@@ -110,7 +112,7 @@ def start(login, app):
 
                 ct.delete()
                 time.sleep(5)
-                ct = createComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config)
+                ct = createOrGetComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config)
             else:
                 logger.info(f"    Using pre-existing compute target {ct_name}")
     else:
@@ -123,41 +125,21 @@ def start(login, app):
             "{vm_size} does not have Pascal or above GPU Family".format(vm_size=vm_name)
         )
 
-    environment_name = login_config["aml_compute"]["environment_name"]
-    python_interpreter = login_config["aml_compute"]["python_interpreter"]
-    conda_packages = login_config["aml_compute"]["conda_packages"]
+    env = createOrGetEnvironment(ws, login_config, app_config)
 
-    if environment_name not in ws.environments:
-        logger.info(f"Creating {environment_name} environment...")
-        env = Environment(name=environment_name)
-        env.docker.enabled = login_config["aml_compute"]["docker_enabled"]
-        env.docker.base_image = None
-        env.docker.base_dockerfile = f'FROM {app_config["base_dockerfile"]}'
-        env.python.interpreter_path = python_interpreter
-        env.python.user_managed_dependencies = True
-        conda_dep = CondaDependencies()
+    ### UPLOAD ADDITIONAL CONTENT IF NOT EXISTS
 
-        for conda_package in conda_packages:
-            conda_dep.add_conda_package(conda_package)
-
-        env.python.conda_dependencies = conda_dep
-        env.register(workspace=ws)
-        evn = env
-    else:
-        logger.info(f"    Environment {environment_name} found...")
-        env = ws.environments[environment_name]
-
-    amlcluster = AzureMLComputeCluster(
-        workspace=ws,
-        compute_target=ct,
-        initial_node_count=1,
-        experiment_name=login_config["aml_compute"]["exp_name"],
-        environment_definition=env,
-        jupyter_port=login_config["aml_compute"]["jupyter_port"],
-        telemetry_opt_out=True,
-        admin_username=login_config["aml_compute"]["admin_name"],
-        admin_ssh_key=pri_key_file,
-    )
+    # amlcluster = AzureMLComputeCluster(
+    #     workspace=ws,
+    #     compute_target=ct,
+    #     initial_node_count=1,
+    #     experiment_name=login_config["aml_compute"]["exp_name"],
+    #     environment_definition=env,
+    #     jupyter_port=login_config["aml_compute"]["jupyter_port"],
+    #     telemetry_opt_out=True,
+    #     admin_username=login_config["aml_compute"]["admin_name"],
+    #     admin_ssh_key=pri_key_file,
+    # )
 
     logger.info(f"\n    Go to: {amlcluster.jupyter_link}")
     logger.info("    Press Ctrl+C to stop the cluster.")
@@ -213,7 +195,7 @@ def get_ssh_keys():
 
     return pubkey, pri_key_file
 
-def createComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config):
+def createOrGetComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config):
   config = AmlCompute.provisioning_configuration(
       vm_size=vm_name,
       min_nodes=login_config["aml_compute"]["min_nodes"],
@@ -235,10 +217,33 @@ def createComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_co
       raise Exception(msg)
   return ct
 
-def __printAndLog(msg, log=logger.info):
-#   print(msg)
-  log(msg)
+def createOrGetEnvironment(ws, login_config, app_config):
+    environment_name = login_config["aml_compute"]["environment_name"]
+    python_interpreter = login_config["aml_compute"]["python_interpreter"]
+    conda_packages = login_config["aml_compute"]["conda_packages"]
 
+    ### CREATE OR RETRIEVE THE ENVIRONMENT
+    if environment_name not in ws.environments:
+        logger.info(f"Creating {environment_name} environment...")
+        env = Environment(name=environment_name)
+        env.docker.enabled = login_config["aml_compute"]["docker_enabled"]
+        env.docker.base_image = None
+        env.docker.base_dockerfile = f'FROM {app_config["base_dockerfile"]}'
+        env.python.interpreter_path = python_interpreter
+        env.python.user_managed_dependencies = True
+        conda_dep = CondaDependencies()
+
+        for conda_package in conda_packages:
+            conda_dep.add_conda_package(conda_package)
+
+        env.python.conda_dependencies = conda_dep
+        env.register(workspace=ws)
+        evn = env
+    else:
+        logger.info(f"    Environment {environment_name} found...")
+        env = ws.environments[environment_name]
+
+    return env
 
 def go():
     start()
