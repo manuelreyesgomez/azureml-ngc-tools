@@ -1,7 +1,17 @@
 {
     "base_dockerfile":"<URI-TO-NGC-CONTAINER>",
-    "additional_content":
-    [
-        <ADDITIONAL_CONTENT>
-    ]
+    "additional_content": {
+        "download_content": <false|true>,
+        "unzip_content": <false|true>,
+        "upload_content": <false|true>,
+        "list":[
+            {
+                "url": <URL_TO_CONTENT>,
+                "filename": <FILENAME_TO_SAVE_TO>,
+                "localdirectory": <DIRECTORY_TO_EXTRACT_CONTENTS>,
+                "computedirectory": <DIRECTORY_TO_UPLOAD_CONTENTS>,
+                "zipped": <false|true>
+            },
+            ...
+        ]
 }
