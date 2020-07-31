@@ -4,11 +4,14 @@ import urllib.request
 from tqdm import tqdm
 import zipfile
 import json
+import logging
+
+logger = logging.getLogger('azureml_ngc.ngc_content')
 
 
 def downloadurltofile(url, filename):
     if not os.path.exists(filename):
-        print(f"--> Downloading {filename} <--".center(80, "#"))
+        logger.info(f"--> Downloading {filename} <--")
         with open(filename, "wb") as file:
             with urllib.request.urlopen(url) as resp:
                 length = int(resp.getheader("content-length"))
@@ -20,10 +23,9 @@ def downloadurltofile(url, filename):
                             break
                         file.write(buff)
                         pbar.update(len(buff))
-        print(" Download complete ".center(80, "#"))
+        logger.info(f"File {fname} downloaded...")
     else:
-        print(f"-->> {filename} file already exists locally <<--".center(80, "#"))
-    print()
+        logger.info(f"-->> {filename} file already exists locally <<--")
 
 
 def download(url, targetfolder, targetfile):
@@ -45,7 +47,7 @@ def unzippedfile(folder, file):
 
 def upload_data(workspace, datastore, src_dir, tgt_path):
     datastore.upload(src_dir=src_dir, target_path=tgt_path, show_progress=True)
-    print(" Upload complete ".center(80, "#"))
+    logger.info("Upload to ws_default_datastore complete...")
 
 
 def get_config(configfile):
