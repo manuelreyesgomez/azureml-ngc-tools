@@ -4,11 +4,14 @@ import urllib.request
 from tqdm import tqdm
 import zipfile
 import json
+import logging
+
+logger = logging.getLogger("azureml_ngc.ngc_content")
 
 
-def downloadurltofile(url, filename):
+def downloadurltofile(url, filename, orig_filename):
     if not os.path.exists(filename):
-        print(f"--> Downloading {filename} <--".center(80, "#"))
+        logger.info(f"    --> [DOWNLOAD] Downloading {orig_filename} to {filename}<--")
         with open(filename, "wb") as file:
             with urllib.request.urlopen(url) as resp:
                 length = int(resp.getheader("content-length"))
@@ -20,10 +23,11 @@ def downloadurltofile(url, filename):
                             break
                         file.write(buff)
                         pbar.update(len(buff))
-        print(" Download complete ".center(80, "#"))
+        logger.info(f"    -->> [DOWNLOAD] File {orig_filename} downloaded... <<--")
     else:
-        print(f"-->> {filename} file already exists locally <<--".center(80, "#"))
-    print()
+        logger.info(
+            f"    -->> [DOWNLOAD] {orig_filename} file already exists locally <<--"
+        )
 
 
 def download(url, targetfolder, targetfile):
@@ -33,19 +37,35 @@ def download(url, targetfolder, targetfile):
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
 
-    targetfile = os.path.join(data_dir, targetfile)
-    downloadurltofile(url, targetfile)
+    targetfile_fullpath = os.path.join(data_dir, targetfile)
+    downloadurltofile(url, targetfile_fullpath, targetfile)
     return data_dir, targetfile
 
 
-def unzippedfile(folder, file):
-    with zipfile.ZipFile(file, "r") as zip_ref:
-        zip_ref.extractall(folder)
+def unzipFile(filename, srcfolder, destfolder):
+    path = os.getcwd()
+    data_dir = os.path.abspath(os.path.join(path, srcfolder))
+    filepath = os.path.abspath(os.path.join(data_dir, filename))
+    destfolder = os.path.join(data_dir, destfolder)
+
+    if not os.path.exists(destfolder):
+        logger.info(f"    -->> [EXTRACT] Extracting {filename} to {destfolder}... <<--")
+        with zipfile.ZipFile(filepath, "r") as zip_ref:
+            zip_ref.extractall(destfolder)
+    else:
+        logger.info(
+            f"    -->> [EXTRACT] {filename} already extracted to {destfolder}... <<--"
+        )
 
 
-def upload_data(workspace, datastore, src_dir, tgt_path):
-    datastore.upload(src_dir=src_dir, target_path=tgt_path, show_progress=True)
-    print(" Upload complete ".center(80, "#"))
+def upload_data(workspace, datastore, src_dir, tgt_path, overwrite=False):
+    print(src_dir, tgt_path)
+    datastore.upload(
+        src_dir=src_dir, target_path=tgt_path, show_progress=True, overwrite=overwrite
+    )
+    logger.info(
+        f"    -->> [UPLOAD] Completed uploading folder {src_dir} to {tgt_path} in {datastore.name}... <<--"
+    )
 
 
 def get_config(configfile):

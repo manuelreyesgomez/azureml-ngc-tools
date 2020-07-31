@@ -86,10 +86,21 @@ An example (fictitious):
 ```
 {
     "base_dockerfile":"<URI-TO-NGC-CONTAINER>",
-    "additional_content":
-    [
-        <ADDITIONAL CONTENT>
-    ]
+    "additional_content": {
+        "download_content": false,
+        "unzip_content": false,
+        "upload_content": false,
+        "list":[
+            {
+                "url": <URL_TO_CONTENT>,
+                "filename": <FILENAME_TO_SAVE_TO>,
+                "localdirectory": <DIRECTORY_TO_EXTRACT_CONTENTS>,
+                "computedirectory": <DIRECTORY_TO_UPLOAD_CONTENTS>,
+                "zipped": <false|true>
+            },
+            ...
+        ]
+    }
 }
 ```
 
@@ -98,16 +109,20 @@ An example:
 ```
 {
     "base_dockerfile":"nvcr.io/nvidia/clara-train-sdk:v3.0",
-    "additional_content":
-    [
-        {
-            "url":"https://api.ngc.nvidia.com/v2/resources/nvidia/med/getting_started/versions/1/zip",
-            "filename":"clarasdk.zip",
-            "localdirectory":"clara",
-            "computedirectory":"clara",
-            "zipped":true
-        }
-    ]
+    "additional_content": {
+        "download_content": true,
+        "unzip_content": true,
+        "upload_content": true,
+        "list":[
+            {
+                "url":"https://api.ngc.nvidia.com/v2/resources/nvidia/med/getting_started/versions/1/zip",
+                "filename":"clarasdk.zip",
+                "localdirectory":"clara",
+                "computedirectory":"clara",
+                "zipped":true
+            }
+        ]
+    }
 }
 ```
 
