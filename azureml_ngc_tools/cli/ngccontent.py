@@ -6,7 +6,7 @@ import zipfile
 import json
 import logging
 
-logger = logging.getLogger('azureml_ngc.ngc_content')
+logger = logging.getLogger("azureml_ngc.ngc_content")
 
 
 def downloadurltofile(url, filename, orig_filename):
@@ -25,7 +25,9 @@ def downloadurltofile(url, filename, orig_filename):
                         pbar.update(len(buff))
         logger.info(f"    -->> [DOWNLOAD] File {orig_filename} downloaded... <<--")
     else:
-        logger.info(f"    -->> [DOWNLOAD] {orig_filename} file already exists locally <<--")
+        logger.info(
+            f"    -->> [DOWNLOAD] {orig_filename} file already exists locally <<--"
+        )
 
 
 def download(url, targetfolder, targetfile):
@@ -51,14 +53,19 @@ def unzipFile(filename, srcfolder, destfolder):
         with zipfile.ZipFile(filepath, "r") as zip_ref:
             zip_ref.extractall(destfolder)
     else:
-        logger.info(f"    -->> [EXTRACT] {filename} already extracted to {destfolder}... <<--")
-
+        logger.info(
+            f"    -->> [EXTRACT] {filename} already extracted to {destfolder}... <<--"
+        )
 
 
 def upload_data(workspace, datastore, src_dir, tgt_path, overwrite=False):
     print(src_dir, tgt_path)
-    datastore.upload(src_dir=src_dir, target_path=tgt_path, show_progress=True, overwrite=overwrite)
-    logger.info(f"    -->> [UPLOAD] Completed uploading folder {src_dir} to {tgt_path} in {datastore.name}... <<--")
+    datastore.upload(
+        src_dir=src_dir, target_path=tgt_path, show_progress=True, overwrite=overwrite
+    )
+    logger.info(
+        f"    -->> [UPLOAD] Completed uploading folder {src_dir} to {tgt_path} in {datastore.name}... <<--"
+    )
 
 
 def get_config(configfile):
