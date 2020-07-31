@@ -83,7 +83,6 @@ def start(login, app):
 
     ### GET COMPUTE TARGET
     if vm_name in workspace_vm_sizes:
-        # vm_name = login_config["aml_compute"]["vm_name"]
         gpus_per_node = workspace_vm_sizes[vm_name]
 
         verify = f"""
@@ -99,8 +98,6 @@ def start(login, app):
 
         if ct_name not in ws.compute_targets:
             logger.warning(f"Compute target {ct_name} does not exist...")
-
-            # logger.warning(f"Compute target {ct_name} does not exist...")
             ct = createOrGetComputeTarget(ws, ct_name, vm_name, vm_priority, ssh_key_pub, login_config)
         else:
             ct = ws.compute_targets[ct_name]
@@ -128,18 +125,40 @@ def start(login, app):
     env = createOrGetEnvironment(ws, login_config, app_config)
 
     ### UPLOAD ADDITIONAL CONTENT IF NOT EXISTS
+    for additional_content in app_config['additional_content']['list']:
+        url = additional_content['url']
+        targetfile = additional_content['filename']
+        src_path = additional_content['localdirectory']
+        dest_path = additional_content['computedirectory']
 
-    # amlcluster = AzureMLComputeCluster(
-    #     workspace=ws,
-    #     compute_target=ct,
-    #     initial_node_count=1,
-    #     experiment_name=login_config["aml_compute"]["exp_name"],
-    #     environment_definition=env,
-    #     jupyter_port=login_config["aml_compute"]["jupyter_port"],
-    #     telemetry_opt_out=True,
-    #     admin_username=login_config["aml_compute"]["admin_name"],
-    #     admin_ssh_key=pri_key_file,
-    # )
+        if app_config['additional_content']['download_content']:
+            ngccontent.download(url, 'additional_content', targetfile)
+        
+        if (
+            app_config['additional_content']['unzip_content'] and
+            additional_content['zipped']
+        ):
+            ngccontent.unzipFile(targetfile, 'additional_content', src_path)
+        
+        if app_config['additional_content']['upload_content']:
+            ngccontent.upload_data(
+            ws
+            , ws.get_default_datastore()
+            , 'additional_content/' + src_path
+            , dest_path
+        )
+
+    amlcluster = AzureMLComputeCluster(
+        workspace=ws,
+        compute_target=ct,
+        initial_node_count=1,
+        experiment_name=login_config["aml_compute"]["exp_name"],
+        environment_definition=env,
+        jupyter_port=login_config["aml_compute"]["jupyter_port"],
+        telemetry_opt_out=True,
+        admin_username=login_config["aml_compute"]["admin_name"],
+        admin_ssh_key=pri_key_file,
+    )
 
     logger.info(f"\n    Go to: {amlcluster.jupyter_link}")
     logger.info("    Press Ctrl+C to stop the cluster.")
@@ -247,7 +266,6 @@ def createOrGetEnvironment(ws, login_config, app_config):
 
 def go():
     start()
-
 
 if __name__ == "__main__":
     go()
