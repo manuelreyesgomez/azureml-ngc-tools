@@ -6,3 +6,4 @@ azureml_ngc_tools.egg-info/
 __pycache__
 .ipynb_checkpoints
 .eggs
+*.log
