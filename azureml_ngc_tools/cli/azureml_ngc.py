@@ -246,7 +246,7 @@ def createOrGetComputeTarget(
     ct = ComputeTarget.create(ws, ct_name, config)
     ct.wait_for_completion(show_output=True)
 
-    if ct.provisioning_state != "Success":
+    if ct.provisioning_state != "Succeeded":
         msg = f"Failed to create the cluster..."
         logger.exception(msg)
         raise Exception(msg)
