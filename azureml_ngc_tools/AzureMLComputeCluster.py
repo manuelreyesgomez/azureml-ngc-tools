@@ -2,13 +2,13 @@
 from azureml.core import Experiment
 from azureml.core.compute import AmlCompute
 from azureml.train.estimator import Estimator
+from .utils.port_forward_utils import port_forward_logger
 
 import time, os, subprocess, logging
 import pathlib
-import threading
 import signal
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("azureml_ngc")
 
 
 class AzureMLComputeCluster:
@@ -178,8 +178,8 @@ class AzureMLComputeCluster:
         ### ABSOLUTE PATH
         self.abs_path = pathlib.Path(__file__).parent.absolute()
 
-        ### close the cluster handler
-        signal.signal(signal.SIGINT, self.__signal_handler)
+        # ### close the cluster handler
+        # signal.signal(signal.SIGINT, self.__signal_handler)
 
         ### define script parameters
         self.script_params = {}
@@ -195,11 +195,13 @@ class AzureMLComputeCluster:
         self.__create_cluster()
         self.__print_message("Cluster created...")
 
-    def __signal_handler(self, signal, frame):
-        print()
-        self.__print_message("Closing the cluster...")
-        self._close()
-        # sys.exit(0)
+    # def __signal_handler(self, signal, frame):
+    #     print()
+    #     self.__print_message("Closing the cluster...")
+    #     self._close()
+
+    #     if os.name == 'nt':
+    #         sys.exit(0)
 
     def __append_telemetry(self):
         if not self.telemetry_set:
@@ -213,7 +215,6 @@ class AzureMLComputeCluster:
 
     def __print_message(self, msg, length=80, filler="#", pre_post=""):
         logger.info(msg)
-        print(f"{pre_post} {msg} {pre_post}".center(length, filler))
 
     def __create_cluster(self):
         print("\n")
@@ -241,7 +242,7 @@ class AzureMLComputeCluster:
             not in run.get_metrics()  # and "scheduler" not in run.get_metrics()
         ):
             print(".", end="")
-            logger.info("Compute Cluster not ready")
+            # logger.info("Compute Cluster not ready")
             time.sleep(5)
 
         if run.get_status() == "Canceled" or run.get_status() == "Failed":
@@ -256,6 +257,8 @@ class AzureMLComputeCluster:
         self.__update_links()
 
         self.__print_message("Connections established")
+        # while True:
+        #     a = 0
 
     def __update_links(self):
         hostname = "localhost"
@@ -267,19 +270,6 @@ class AzureMLComputeCluster:
         ] = f"http://{hostname}:{self.jupyter_port}/?token={token}"
 
         logger.info(f'Jupyter URL:   {self.headnode_info["jupyter_url"]}')
-
-    def __port_forward_logger(self, portforward_proc):
-        portforward_log = open("portforward_out_log.txt", "w")
-
-        while True:
-            portforward_out = portforward_proc.stdout.readline()
-            if portforward_proc != "":
-                portforward_log.write(portforward_out)
-                portforward_log.flush()
-
-            if self.end_logging:
-                break
-        return
 
     def __setup_port_forwarding(self):
         jupyter_address = self.run.get_metrics()["jupyter"]
@@ -306,11 +296,9 @@ class AzureMLComputeCluster:
         )
 
         ### Starting thread to keep the SSH tunnel open on Windows
-        portforward_logg = threading.Thread(
-            target=self.__port_forward_logger, args=[self.portforward_proc]
-        )
-        portforward_logg.start()
-
+        self.portforward_logg = port_forward_logger(self.portforward_proc)
+        self.portforward_logg.start()
+        
     @property
     def jupyter_link(self):
         """ Link to JupyterLab on running on the headnode of the cluster.
@@ -338,6 +326,7 @@ class AzureMLComputeCluster:
         if self.portforward_proc is not None:
             ### STOP LOGGING SSH
             self.portforward_proc.terminate()
+            self.portforward_logg.join()
             self.end_logging = True
 
     def close(self):
@@ -345,4 +334,5 @@ class AzureMLComputeCluster:
         and worker processes will be completed. The Azure ML Compute Target will
         return to its minimum number of nodes after its idle time before scaledown.
         """
+        logger.info("Closing experiment...")
         return self._close()
