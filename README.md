@@ -27,7 +27,8 @@ Two configuration files are required:
     {
         "subscription_id": "<YOUR-SUBSCRIPTION-ID>",
         "resource_group": "<YOUR-RESOURCE-GROUP>",
-        "workspace_name": "<YOUR-WORKSPACE-NAME>"
+        "workspace_name": "<YOUR-WORKSPACE-NAME>",
+        "telemetry_opt_out": <true|false>
     },
     "aml_compute":
     {
@@ -58,7 +59,8 @@ An example (fictitious):
     {
         "subscription_id": "ef4455fa-3e35-433c-a410-76d7a8a9e793",
         "resource_group": "sample-rg",
-        "workspace_name": "sample-ws"
+        "workspace_name": "sample-ws",
+        "telemetry_opt_out": false
     },
     "aml_compute":
     {
