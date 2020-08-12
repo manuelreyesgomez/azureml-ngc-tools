@@ -3,7 +3,8 @@
     {
         "subscription_id": "<YOUR-SUBSCRIPTION-ID>",
         "resource_group": "<YOUR-RESOURCE-GROUP>",
-        "workspace_name": "<YOUR-WORKSPACE-NAME>"
+        "workspace_name": "<YOUR-WORKSPACE-NAME>",
+        "telemetry_opt_out": <true|false>
     },
     "aml_compute":
     {

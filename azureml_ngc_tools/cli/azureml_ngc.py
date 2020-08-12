@@ -167,13 +167,19 @@ def start(login, app):
         experiment_name=login_config["aml_compute"]["exp_name"],
         environment_definition=env,
         jupyter_port=login_config["aml_compute"]["jupyter_port"],
-        telemetry_opt_out=True,
+        telemetry_opt_out=login_config["azureml_user"]["telemetry_opt_out"],
         admin_username=login_config["aml_compute"]["admin_name"],
         admin_ssh_key=pri_key_file,
     )
 
     logger.info(f"\n    Go to: {amlcluster.jupyter_link}")
     logger.info("    Press Ctrl+C to stop the cluster.")
+
+    try:
+        while True:
+            pass
+    except KeyboardInterrupt:
+        amlcluster.close()
 
 
 def get_ssh_keys():
