@@ -1,6 +1,8 @@
 import threading
+
+
 class port_forward_logger(threading.Thread):
-    def  __init__(self, portforward_proc):
+    def __init__(self, portforward_proc):
         super().__init__()
 
         self.portforward_proc = portforward_proc
@@ -16,7 +18,7 @@ class port_forward_logger(threading.Thread):
                 self.portforward_log.flush()
 
         return
-            
+
     def join(self, timeout=None):
         self.running = False
         self.stop_logging.set()

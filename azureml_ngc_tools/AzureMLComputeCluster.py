@@ -6,7 +6,6 @@ from .utils.port_forward_utils import port_forward_logger
 
 import time, os, subprocess, logging
 import pathlib
-import signal
 
 logger = logging.getLogger("azureml_ngc")
 
@@ -257,8 +256,6 @@ class AzureMLComputeCluster:
         self.__update_links()
 
         self.__print_message("Connections established")
-        # while True:
-        #     a = 0
 
     def __update_links(self):
         hostname = "localhost"
@@ -298,7 +295,7 @@ class AzureMLComputeCluster:
         ### Starting thread to keep the SSH tunnel open on Windows
         self.portforward_logg = port_forward_logger(self.portforward_proc)
         self.portforward_logg.start()
-        
+
     @property
     def jupyter_link(self):
         """ Link to JupyterLab on running on the headnode of the cluster.

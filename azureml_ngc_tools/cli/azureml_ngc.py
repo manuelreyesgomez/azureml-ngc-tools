@@ -177,7 +177,7 @@ def start(login, app):
 
     try:
         while True:
-          pass
+            pass
     except KeyboardInterrupt:
         amlcluster.close()
 
