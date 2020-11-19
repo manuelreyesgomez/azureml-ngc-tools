@@ -7,6 +7,8 @@ import json
 import logging
 import threading
 import subprocess
+import tarfile
+from progressbar import ProgressBar
 
 logger = logging.getLogger("azureml_ngc.ngc_content")
 
@@ -58,6 +60,46 @@ def unzipFile(filename, srcfolder, destfolder):
         logger.info(
             f"    -->> [EXTRACT] {filename} already extracted to {destfolder}... <<--"
         )
+
+def show_progress(count, block_size, total_size):
+    global pbar
+    global processed
+    
+    if count == 0:
+        pbar = ProgressBar(maxval=total_size)
+        processed = 0
+    
+    processed += block_size
+    processed = min(processed,total_size)
+    pbar.update(processed)
+
+def decompress_tarfile(filename, srcfolder, destfolder):
+    path = os.getcwd()
+    data_dir = os.path.abspath(os.path.join(path, srcfolder))
+    filepath = os.path.abspath(os.path.join(data_dir, filename))
+    destfolder = os.path.join(data_dir, destfolder)   
+
+    if not os.path.exists(destfolder):
+
+        logger.info(f"    -->> [EXTRACT] Extracting {filename} to {destfolder}... <<--")
+        
+        tar = tarfile.open(filepath)
+        print("...Getting information from {0} about files to decompress".format(filename))
+        members = tar.getmembers()
+        numFiles = len(members)
+        so_far = 0
+        for member_info in members:
+            tar.extract(member_info,path=destfolder)
+            show_progress(so_far, 1, numFiles)
+            so_far += 1
+        pbar.finish()
+        print("...All {0} files have been decompressed".format(numFiles))
+        tar.close()
+    else:
+        logger.info(
+            f"    -->> [EXTRACT] {filename} already extracted to {destfolder}... <<--"
+        )
+
 
 
 def upload_data(workspace, datastore, src_dir, tgt_path, overwrite=False):

@@ -137,26 +137,41 @@ def start(login, app):
     env = createOrGetEnvironment(ws, login_config, app_config)
 
     ### UPLOAD ADDITIONAL CONTENT IF NOT EXISTS
+    tarextensions = [".tar",".tbz",".tgz",".txz"]
     for additional_content in app_config["additional_content"]["list"]:
         url = additional_content["url"]
         targetfile = additional_content["filename"]
         src_path = additional_content["localdirectory"]
         dest_path = additional_content["computedirectory"]
         
-        if (
-            "source" in additional_content.keys()
-            and additional_content["source"] == "github"
-        ):
-            ngccontent.clone_github_repo(url,"additional_content",src_path)
-        else:
-            if app_config["additional_content"]["download_content"]:
-                ngccontent.download(url, "additional_content", targetfile)
+        if app_config["additional_content"]["download_content"]:
             if (
-                app_config["additional_content"]["unzip_content"]
-                and additional_content["zipped"]
+                "source" in additional_content.keys()
+                and additional_content["source"] == "github"
             ):
-                ngccontent.unzipFile(targetfile, "additional_content", src_path)
-
+                ngccontent.clone_github_repo(url,"additional_content",src_path)
+                if "githubdirectory" in additional_content.keys():
+                    src_path = additional_content["githubdirectory"]
+            else:
+                lcl_path = "additional_content"
+                if type(targetfile) == list:
+                    targetfiles = targetfile
+                    lcl_path = os.path.join(lcl_path,src_path)
+                    for targetfile in targetfiles:
+                        if app_config["additional_content"]["download_content"]:
+                            ngccontent.download(url+targetfile, lcl_path, targetfile)
+                else:
+                    ngccontent.download(url, lcl_path, targetfile)
+                    if (
+                        app_config["additional_content"]["unzip_content"]
+                        and additional_content["zipped"]
+                    ):
+                        fileroot, file_extension = os.path.splitext(targetfile)
+                        if file_extension in tarextensions:
+                            ngccontent.decompress_tarfile(targetfile, "additional_content", src_path)
+                        else:
+                            ngccontent.unzipFile(targetfile, "additional_content", src_path)
+                    
         if app_config["additional_content"]["upload_content"]:
             ngccontent.upload_data(
                 ws,
@@ -165,7 +180,31 @@ def start(login, app):
                 dest_path,
             )
 
-    if (login_config["aml_compute"]["max_nodes"]==1):    
+    if (
+        login_config["aml_compute"]["max_nodes"]>1 
+        or (login_config["aml_compute"]["max_nodes"]==1
+        and 'dask' in login_config["aml_compute"]
+        and login_config["aml_compute"]['dask']==True)
+        ):
+
+        logger.info("Creating a Dask Cluster with {} nodes".format(login_config["aml_compute"]["max_nodes"]))
+        
+        if 'scheduler_idle_timeout' not in login_config["aml_compute"]:
+            login_config["aml_compute"]["scheduler_idle_timeout"] = 3600
+        
+        amlcluster = AzureMLCluster(
+            workspace=ws,
+            compute_target=ct,
+            initial_node_count=login_config["aml_compute"]["max_nodes"],
+            experiment_name=login_config["aml_compute"]["exp_name"],
+            environment_definition=env,
+            scheduler_idle_timeout=login_config["aml_compute"]["scheduler_idle_timeout"], 
+            jupyter_port=login_config["aml_compute"]["jupyter_port"],
+            telemetry_opt_out=login_config["azureml_user"]["telemetry_opt_out"],
+            admin_username=login_config["aml_compute"]["admin_name"],
+            admin_ssh_key=pri_key_file,
+        )    
+    else:
         amlcluster = AzureMLComputeCluster(
             workspace=ws,
             compute_target=ct,
@@ -176,20 +215,7 @@ def start(login, app):
             telemetry_opt_out=login_config["azureml_user"]["telemetry_opt_out"],
             admin_username=login_config["aml_compute"]["admin_name"],
             admin_ssh_key=pri_key_file,
-        )
-    else:
-        logger.info("Creating a Dask Cluster with {} nodes".format(login_config["aml_compute"]["max_nodes"]))
-        amlcluster = AzureMLCluster(
-            workspace=ws,
-            compute_target=ct,
-            initial_node_count=login_config["aml_compute"]["max_nodes"],
-            experiment_name=login_config["aml_compute"]["exp_name"],
-            environment_definition=env,
-            jupyter_port=login_config["aml_compute"]["jupyter_port"],
-            telemetry_opt_out=login_config["azureml_user"]["telemetry_opt_out"],
-            admin_username=login_config["aml_compute"]["admin_name"],
-            admin_ssh_key=pri_key_file,
-        )       
+        )   
 
     logger.info(f"\n    Go to: {amlcluster.jupyter_link}")
     logger.info("    Press Ctrl+C to stop the cluster.")
